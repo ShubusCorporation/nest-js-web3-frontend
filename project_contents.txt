@@ -1,0 +1,1436 @@
+Project Structure:
+.gitignore
+buf.gen.yaml
+eslint.config.js
+index.html
+README-aliases.md
+README-test-tsconfig.md
+README.md
+vite.config.ts
+src/App.css
+src/App.tsx
+src/index.css
+src/main.tsx
+src/assets/hero.png
+src/assets/react.svg
+src/assets/vite.svg
+src/core/api-client.ts
+src/core/logger.ts
+src/core/notification.service.ts
+src/core/root-store.ts
+src/core/wagmi.ts
+src/generated/proto/src/proto/wallet-service_pb.ts
+src/proto/wallet-service.proto
+src/wallet/wallet.component.tsx
+src/wallet/wallet.store.ts
+test/wallet/wallet.store.test.ts
+
+File Contents:
+.gitignore:
+```
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+```
+
+buf.gen.yaml:
+```
+version: v2
+plugins:
+  # Генерирует и сообщения (классы данных), и сервисы Connect RPC в TypeScript
+  - local: protoc-gen-es
+    out: src/generated/proto
+    opt: target=ts
+
+```
+
+eslint.config.js:
+```
+import js from '@eslint/js'
+import globals from 'globals'
+import reactHooks from 'eslint-plugin-react-hooks'
+import reactRefresh from 'eslint-plugin-react-refresh'
+import tseslint from 'typescript-eslint'
+import { defineConfig, globalIgnores } from 'eslint/config'
+
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      js.configs.recommended,
+      tseslint.configs.recommended,
+      reactHooks.configs.flat.recommended,
+      reactRefresh.configs.vite,
+    ],
+    languageOptions: {
+      globals: globals.browser,
+    },
+  },
+])
+
+```
+
+index.html:
+```
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>frontend</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+
+```
+
+README-aliases.md:
+```
+# 📂 Памятка по путям (Aliases) в TypeScript + Vite
+
+### 🔴 В чем была проблема?
+При использовании путей типа `@src/*` проект выдавал ошибку `Cannot find module '@src'...`, потому что в проекте включен режим **Project References** (`"references": [...]` в корне). В этом режиме настройки из корневого `tsconfig.json` по умолчанию **не долетают** до файлов конфигурации конкретных приложений (например, `tsconfig.app.json`).
+
+---
+
+### 🧠 Главный инсайт: Кто за что отвечает?
+1. **TypeScript (Проверяльщик):** Нуждается в `tsconfig`, чтобы подсвечивать ошибки в VS Code и проверять типы. **Он НЕ переписывает пути при компиляции.** Если ты написал `@src`, он так и оставит `@src` в JS-файле.
+2. **Vite (Сборщик):** Нуждается в алиасах, чтобы физически найти файлы на диске и **переписать** `@src` в понятные браузеру относительные пути (типа `./src/...`). Без этого браузер выдаст ошибку.
+
+---
+
+### 🛠️ Идеальная настройка в 1 месте (Без дублирования)
+
+Чтобы не прописывать пути руками и в TS, и в Vite, мы делаем `tsconfig.json` главным источником правды, а Vite заставляем читать из него.
+
+#### 1. Установка плагина-мостика
+В терминале:
+```bash
+npm i -D vite-tsconfig-paths
+```
+
+#### 2. Кабина директора (`tsconfig.json`) — Пути пишем ТОЛЬКО ТУТ
+```json
+{
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.node.json" }
+  ],
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "baseUrl": ".",
+    "paths": {
+      "@src/*": ["src/*"]
+    }
+  }
+}
+```
+
+#### 3. Отдел разработки (`tsconfig.app.json`) — Просто наследует
+```json
+{
+  "extends": "./tsconfig.json", // Подтягивает и strict-настройки, и paths
+  "compilerOptions": {
+    "composite": true
+  },
+  "include": ["src"]
+}
+```
+
+#### 4. Конфиг сборщика (`vite.config.ts`) — Никакой копипасты
+Убираем блок `resolve.alias` и подключаем плагин. Теперь Vite сам ворует пути из `tsconfig.json`.
+```ts
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import tsconfigPaths from 'vite-tsconfig-paths'; // Импортируем мостик
+
+export default defineConfig({
+  plugins: [
+    react(), 
+    tsconfigPaths() // Заставляем Vite читать пути из TS автоматически
+  ]
+});
+```
+
+```
+
+README-test-tsconfig.md:
+```
+# TypeScript Path Resolution Issue in Tests
+
+## Problem
+TypeScript fails to resolve path aliases (e.g., `@src/*`) inside the `test` directory, causing errors like `Cannot find module '@src/...'`.
+
+## How This Garbage Works under the Hood
+You might think adding `test` to `include` is backward because you are looking for `src` from tests, not vice versa. However, TypeScript works differently:
+
+1. **Compilation Scope:** TypeScript only applies settings (like `compilerOptions.paths`) to files that are explicitly part of its project scope.
+2. **The "Orphan" File Dilemma:** If `tsconfig.app.json` only contains `"include": ["src"]`, TypeScript assumes the `test` folder does not exist. 
+3. **The Result:** When you open a test file, TypeScript treats it as an isolated "orphan" script. It completely ignores your `@src` aliases and tries to look for it inside `node_modules`, resulting in a crash.
+
+> **TL;DR:** By adding `"test/"` to `include`, you aren't exporting test paths. You are telling TypeScript: *"Hey, look at the files in the test folder. They belong to this project too. Apply the `@src` alias settings to them."*
+
+## Solution
+
+Choose **one** of the following options to fix it.
+
+### Option 1: Update existing `tsconfig.app.json` (Quickest)
+Add the `test` directory to the `include` array so TypeScript applies the alias configurations to your test files. Using a trailing slash `test/` explicitly tells TS to scan the folder recursively.
+
+```json
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // ... your configurations
+  },
+  "include": ["src", "test/"]
+}
+```
+
+### Option 2: Create a dedicated `tsconfig.test.json` (Best Practice)
+Keeps browser types and Node.js test environments isolated.
+
+1. Create **`tsconfig.test.json`** in the root:
+```json
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "include": ["src", "test/"]
+}
+```
+
+2. Register it in the root **`tsconfig.json`**:
+```json
+{
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.node.json" },
+    { "path": "./tsconfig.test.json" }
+  ]
+}
+```
+
+## Runtime Resolution (Vite / Vitest)
+TypeScript only handles type-checking in the IDE. For Vitest to actually resolve these paths during test execution, ensure you have the `vite-tsconfig-paths` plugin configured in your bundler.
+
+```typescript
+// vite.config.ts or vitest.config.ts
+import { defineConfig } from 'vitest/config';
+import tsconfigPaths from 'vite-tsconfig-paths';
+
+export default defineConfig({
+  plugins: [tsconfigPaths()],
+  test: {
+    // vitest configs
+  },
+});
+```
+
+```
+
+README.md:
+```
+# React + TypeScript + Vite
+
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+
+Currently, two official plugins are available:
+
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+
+## React Compiler
+
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+
+## Expanding the ESLint configuration
+
+If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+
+```js
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      // Other configs...
+
+      // Remove tseslint.configs.recommended and replace with this
+      tseslint.configs.recommendedTypeChecked,
+      // Alternatively, use this for stricter rules
+      tseslint.configs.strictTypeChecked,
+      // Optionally, add this for stylistic rules
+      tseslint.configs.stylisticTypeChecked,
+
+      // Other configs...
+    ],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      // other options...
+    },
+  },
+])
+
+```
+
+You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
+
+```js
+// eslint.config.js
+import reactX from 'eslint-plugin-react-x'
+import reactDom from 'eslint-plugin-react-dom'
+
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      // Other configs...
+      // Enable lint rules for React
+      reactX.configs['recommended-typescript'],
+      // Enable lint rules for React DOM
+      reactDom.configs.recommended,
+    ],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      // other options...
+    },
+  },
+])
+
+```
+
+```
+
+vite.config.ts:
+```
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import tsconfigPaths from 'vite-tsconfig-paths';
+
+export default defineConfig({
+  plugins: [
+    react(),
+    tsconfigPaths() ,
+  ], 
+});
+
+```
+
+App.css:
+```
+.counter {
+  font-size: 16px;
+  padding: 5px 10px;
+  border-radius: 5px;
+  color: var(--accent);
+  background: var(--accent-bg);
+  border: 2px solid transparent;
+  transition: border-color 0.3s;
+  margin-bottom: 24px;
+
+  &:hover {
+    border-color: var(--accent-border);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+}
+
+.hero {
+  position: relative;
+
+  .base,
+  .framework,
+  .vite {
+    inset-inline: 0;
+    margin: 0 auto;
+  }
+
+  .base {
+    width: 170px;
+    position: relative;
+    z-index: 0;
+  }
+
+  .framework,
+  .vite {
+    position: absolute;
+  }
+
+  .framework {
+    z-index: 1;
+    top: 34px;
+    height: 28px;
+    transform: perspective(2000px) rotateZ(300deg) rotateX(44deg) rotateY(39deg)
+      scale(1.4);
+  }
+
+  .vite {
+    z-index: 0;
+    top: 107px;
+    height: 26px;
+    width: auto;
+    transform: perspective(2000px) rotateZ(300deg) rotateX(40deg) rotateY(39deg)
+      scale(0.8);
+  }
+}
+
+#center {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  place-content: center;
+  place-items: center;
+  flex-grow: 1;
+
+  @media (max-width: 1024px) {
+    padding: 32px 20px 24px;
+    gap: 18px;
+  }
+}
+
+#next-steps {
+  display: flex;
+  border-top: 1px solid var(--border);
+  text-align: left;
+
+  & > div {
+    flex: 1 1 0;
+    padding: 32px;
+    @media (max-width: 1024px) {
+      padding: 24px 20px;
+    }
+  }
+
+  .icon {
+    margin-bottom: 16px;
+    width: 22px;
+    height: 22px;
+  }
+
+  @media (max-width: 1024px) {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+
+#docs {
+  border-right: 1px solid var(--border);
+
+  @media (max-width: 1024px) {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+}
+
+#next-steps ul {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  gap: 8px;
+  margin: 32px 0 0;
+
+  .logo {
+    height: 18px;
+  }
+
+  a {
+    color: var(--text-h);
+    font-size: 16px;
+    border-radius: 6px;
+    background: var(--social-bg);
+    display: flex;
+    padding: 6px 12px;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    transition: box-shadow 0.3s;
+
+    &:hover {
+      box-shadow: var(--shadow);
+    }
+    .button-icon {
+      height: 18px;
+      width: 18px;
+    }
+  }
+
+  @media (max-width: 1024px) {
+    margin-top: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+
+    li {
+      flex: 1 1 calc(50% - 8px);
+    }
+
+    a {
+      width: 100%;
+      justify-content: center;
+      box-sizing: border-box;
+    }
+  }
+}
+
+#spacer {
+  height: 88px;
+  border-top: 1px solid var(--border);
+  @media (max-width: 1024px) {
+    height: 48px;
+  }
+}
+
+.ticks {
+  position: relative;
+  width: 100%;
+
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    top: -4.5px;
+    border: 5px solid transparent;
+  }
+
+  &::before {
+    left: 0;
+    border-left-color: var(--border);
+  }
+  &::after {
+    right: 0;
+    border-right-color: var(--border);
+  }
+}
+
+```
+
+App.tsx:
+```
+import React from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { WagmiProvider } from 'wagmi';
+import { config } from '@src/core/wagmi';
+import { WalletComponent } from '@src/wallet/wallet.component';
+import { logger } from '@src/core/logger';
+
+// Инициализируем TanStack Query клиент для кэширования блокчейн-данных
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false, // Отключаем повторные запросы при ошибках в dev-режиме
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
+export function App() {
+  logger.info('Инициализация главного компонента App и Web3 провайдеров');
+
+  return (
+    <WagmiProvider config={config}>
+      <QueryClientProvider client={queryClient}>
+        <div style={{ padding: '24px', fontFamily: 'sans-serif' }}>
+          <h1>Web3 Analytics Dashboard</h1>
+          
+          {/* Наш основной UI компонент, который мы напишем следующим шагом */}
+          <WalletComponent />
+        </div>
+      </QueryClientProvider>
+    </WagmiProvider>
+  );
+}
+
+```
+
+index.css:
+```
+:root {
+  --text: #6b6375;
+  --text-h: #08060d;
+  --bg: #fff;
+  --border: #e5e4e7;
+  --code-bg: #f4f3ec;
+  --accent: #aa3bff;
+  --accent-bg: rgba(170, 59, 255, 0.1);
+  --accent-border: rgba(170, 59, 255, 0.5);
+  --social-bg: rgba(244, 243, 236, 0.5);
+  --shadow:
+    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+
+  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --mono: ui-monospace, Consolas, monospace;
+
+  font: 18px/145% var(--sans);
+  letter-spacing: 0.18px;
+  color-scheme: light dark;
+  color: var(--text);
+  background: var(--bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  @media (max-width: 1024px) {
+    font-size: 16px;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text: #9ca3af;
+    --text-h: #f3f4f6;
+    --bg: #16171d;
+    --border: #2e303a;
+    --code-bg: #1f2028;
+    --accent: #c084fc;
+    --accent-bg: rgba(192, 132, 252, 0.15);
+    --accent-border: rgba(192, 132, 252, 0.5);
+    --social-bg: rgba(47, 48, 58, 0.5);
+    --shadow:
+      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
+  }
+
+  #social .button-icon {
+    filter: invert(1) brightness(2);
+  }
+}
+
+#root {
+  width: 1126px;
+  max-width: 100%;
+  margin: 0 auto;
+  text-align: center;
+  border-inline: 1px solid var(--border);
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+h1,
+h2 {
+  font-family: var(--heading);
+  font-weight: 500;
+  color: var(--text-h);
+}
+
+h1 {
+  font-size: 56px;
+  letter-spacing: -1.68px;
+  margin: 32px 0;
+  @media (max-width: 1024px) {
+    font-size: 36px;
+    margin: 20px 0;
+  }
+}
+h2 {
+  font-size: 24px;
+  line-height: 118%;
+  letter-spacing: -0.24px;
+  margin: 0 0 8px;
+  @media (max-width: 1024px) {
+    font-size: 20px;
+  }
+}
+p {
+  margin: 0;
+}
+
+code,
+.counter {
+  font-family: var(--mono);
+  display: inline-flex;
+  border-radius: 4px;
+  color: var(--text-h);
+}
+
+code {
+  font-size: 15px;
+  line-height: 135%;
+  padding: 4px 8px;
+  background: var(--code-bg);
+}
+
+```
+
+main.tsx:
+```
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import './index.css'
+import App from './App.tsx'
+
+createRoot(document.getElementById('root')!).render(
+  <StrictMode>
+    <App />
+  </StrictMode>,
+)
+
+```
+
+hero.png:
+```
+Error reading file: 'utf-8' codec can't decode byte 0x89 in position 0: invalid start byte
+```
+
+react.svg:
+```
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" class="iconify iconify--logos" width="35.93" height="32" preserveAspectRatio="xMidYMid meet" viewBox="0 0 256 228"><path fill="#00D8FF" d="M210.483 73.824a171.49 171.49 0 0 0-8.24-2.597c.465-1.9.893-3.777 1.273-5.621c6.238-30.281 2.16-54.676-11.769-62.708c-13.355-7.7-35.196.329-57.254 19.526a171.23 171.23 0 0 0-6.375 5.848a155.866 155.866 0 0 0-4.241-3.917C100.759 3.829 77.587-4.822 63.673 3.233C50.33 10.957 46.379 33.89 51.995 62.588a170.974 170.974 0 0 0 1.892 8.48c-3.28.932-6.445 1.924-9.474 2.98C17.309 83.498 0 98.307 0 113.668c0 15.865 18.582 31.778 46.812 41.427a145.52 145.52 0 0 0 6.921 2.165a167.467 167.467 0 0 0-2.01 9.138c-5.354 28.2-1.173 50.591 12.134 58.266c13.744 7.926 36.812-.22 59.273-19.855a145.567 145.567 0 0 0 5.342-4.923a168.064 168.064 0 0 0 6.92 6.314c21.758 18.722 43.246 26.282 56.54 18.586c13.731-7.949 18.194-32.003 12.4-61.268a145.016 145.016 0 0 0-1.535-6.842c1.62-.48 3.21-.974 4.76-1.488c29.348-9.723 48.443-25.443 48.443-41.52c0-15.417-17.868-30.326-45.517-39.844Zm-6.365 70.984c-1.4.463-2.836.91-4.3 1.345c-3.24-10.257-7.612-21.163-12.963-32.432c5.106-11 9.31-21.767 12.459-31.957c2.619.758 5.16 1.557 7.61 2.4c23.69 8.156 38.14 20.213 38.14 29.504c0 9.896-15.606 22.743-40.946 31.14Zm-10.514 20.834c2.562 12.94 2.927 24.64 1.23 33.787c-1.524 8.219-4.59 13.698-8.382 15.893c-8.067 4.67-25.32-1.4-43.927-17.412a156.726 156.726 0 0 1-6.437-5.87c7.214-7.889 14.423-17.06 21.459-27.246c12.376-1.098 24.068-2.894 34.671-5.345a134.17 134.17 0 0 1 1.386 6.193ZM87.276 214.515c-7.882 2.783-14.16 2.863-17.955.675c-8.075-4.657-11.432-22.636-6.853-46.752a156.923 156.923 0 0 1 1.869-8.499c10.486 2.32 22.093 3.988 34.498 4.994c7.084 9.967 14.501 19.128 21.976 27.15a134.668 134.668 0 0 1-4.877 4.492c-9.933 8.682-19.886 14.842-28.658 17.94ZM50.35 144.747c-12.483-4.267-22.792-9.812-29.858-15.863c-6.35-5.437-9.555-10.836-9.555-15.216c0-9.322 13.897-21.212 37.076-29.293c2.813-.98 5.757-1.905 8.812-2.773c3.204 10.42 7.406 21.315 12.477 32.332c-5.137 11.18-9.399 22.249-12.634 32.792a134.718 134.718 0 0 1-6.318-1.979Zm12.378-84.26c-4.811-24.587-1.616-43.134 6.425-47.789c8.564-4.958 27.502 2.111 47.463 19.835a144.318 144.318 0 0 1 3.841 3.545c-7.438 7.987-14.787 17.08-21.808 26.988c-12.04 1.116-23.565 2.908-34.161 5.309a160.342 160.342 0 0 1-1.76-7.887Zm110.427 27.268a347.8 347.8 0 0 0-7.785-12.803c8.168 1.033 15.994 2.404 23.343 4.08c-2.206 7.072-4.956 14.465-8.193 22.045a381.151 381.151 0 0 0-7.365-13.322Zm-45.032-43.861c5.044 5.465 10.096 11.566 15.065 18.186a322.04 322.04 0 0 0-30.257-.006c4.974-6.559 10.069-12.652 15.192-18.18ZM82.802 87.83a323.167 323.167 0 0 0-7.227 13.238c-3.184-7.553-5.909-14.98-8.134-22.152c7.304-1.634 15.093-2.97 23.209-3.984a321.524 321.524 0 0 0-7.848 12.897Zm8.081 65.352c-8.385-.936-16.291-2.203-23.593-3.793c2.26-7.3 5.045-14.885 8.298-22.6a321.187 321.187 0 0 0 7.257 13.246c2.594 4.48 5.28 8.868 8.038 13.147Zm37.542 31.03c-5.184-5.592-10.354-11.779-15.403-18.433c4.902.192 9.899.29 14.978.29c5.218 0 10.376-.117 15.453-.343c-4.985 6.774-10.018 12.97-15.028 18.486Zm52.198-57.817c3.422 7.8 6.306 15.345 8.596 22.52c-7.422 1.694-15.436 3.058-23.88 4.071a382.417 382.417 0 0 0 7.859-13.026a347.403 347.403 0 0 0 7.425-13.565Zm-16.898 8.101a358.557 358.557 0 0 1-12.281 19.815a329.4 329.4 0 0 1-23.444.823c-7.967 0-15.716-.248-23.178-.732a310.202 310.202 0 0 1-12.513-19.846h.001a307.41 307.41 0 0 1-10.923-20.627a310.278 310.278 0 0 1 10.89-20.637l-.001.001a307.318 307.318 0 0 1 12.413-19.761c7.613-.576 15.42-.876 23.31-.876H128c7.926 0 15.743.303 23.354.883a329.357 329.357 0 0 1 12.335 19.695a358.489 358.489 0 0 1 11.036 20.54a329.472 329.472 0 0 1-11 20.722Zm22.56-122.124c8.572 4.944 11.906 24.881 6.52 51.026c-.344 1.668-.73 3.367-1.15 5.09c-10.622-2.452-22.155-4.275-34.23-5.408c-7.034-10.017-14.323-19.124-21.64-27.008a160.789 160.789 0 0 1 5.888-5.4c18.9-16.447 36.564-22.941 44.612-18.3ZM128 90.808c12.625 0 22.86 10.235 22.86 22.86s-10.235 22.86-22.86 22.86s-22.86-10.235-22.86-22.86s10.235-22.86 22.86-22.86Z"></path></svg>
+```
+
+vite.svg:
+```
+<svg xmlns="http://www.w3.org/2000/svg" width="77" height="47" fill="none" aria-labelledby="vite-logo-title" viewBox="0 0 77 47"><title id="vite-logo-title">Vite</title><style>.parenthesis{fill:#000}@media (prefers-color-scheme:dark){.parenthesis{fill:#fff}}</style><path fill="#9135ff" d="M40.151 45.71c-.663.844-2.02.374-2.02-.699V34.708a2.26 2.26 0 0 0-2.262-2.262H24.493c-.92 0-1.457-1.04-.92-1.788l7.479-10.471c1.07-1.498 0-3.578-1.842-3.578H15.443c-.92 0-1.456-1.04-.92-1.788l9.696-13.576c.213-.297.556-.474.92-.474h28.894c.92 0 1.456 1.04.92 1.788l-7.48 10.472c-1.07 1.497 0 3.578 1.842 3.578h11.376c.944 0 1.474 1.087.89 1.83L40.153 45.712z"/><mask id="a" width="48" height="47" x="14" y="0" maskUnits="userSpaceOnUse" style="mask-type:alpha"><path fill="#000" d="M40.047 45.71c-.663.843-2.02.374-2.02-.699V34.708a2.26 2.26 0 0 0-2.262-2.262H24.389c-.92 0-1.457-1.04-.92-1.788l7.479-10.472c1.07-1.497 0-3.578-1.842-3.578H15.34c-.92 0-1.456-1.04-.92-1.788l9.696-13.575c.213-.297.556-.474.92-.474H53.93c.92 0 1.456 1.04.92 1.788L47.37 13.03c-1.07 1.498 0 3.578 1.842 3.578h11.376c.944 0 1.474 1.088.89 1.831L40.049 45.712z"/></mask><g mask="url(#a)"><g filter="url(#b)"><ellipse cx="5.508" cy="14.704" fill="#eee6ff" rx="5.508" ry="14.704" transform="rotate(269.814 20.96 11.29)scale(-1 1)"/></g><g filter="url(#c)"><ellipse cx="10.399" cy="29.851" fill="#eee6ff" rx="10.399" ry="29.851" transform="rotate(89.814 -16.902 -8.275)scale(1 -1)"/></g><g filter="url(#d)"><ellipse cx="5.508" cy="30.487" fill="#8900ff" rx="5.508" ry="30.487" transform="rotate(89.814 -19.197 -7.127)scale(1 -1)"/></g><g filter="url(#e)"><ellipse cx="5.508" cy="30.599" fill="#8900ff" rx="5.508" ry="30.599" transform="rotate(89.814 -25.928 4.177)scale(1 -1)"/></g><g filter="url(#f)"><ellipse cx="5.508" cy="30.599" fill="#8900ff" rx="5.508" ry="30.599" transform="rotate(89.814 -25.738 5.52)scale(1 -1)"/></g><g filter="url(#g)"><ellipse cx="14.072" cy="22.078" fill="#eee6ff" rx="14.072" ry="22.078" transform="rotate(93.35 31.245 55.578)scale(-1 1)"/></g><g filter="url(#h)"><ellipse cx="3.47" cy="21.501" fill="#8900ff" rx="3.47" ry="21.501" transform="rotate(89.009 35.419 55.202)scale(-1 1)"/></g><g filter="url(#i)"><ellipse cx="3.47" cy="21.501" fill="#8900ff" rx="3.47" ry="21.501" transform="rotate(89.009 35.419 55.202)scale(-1 1)"/></g><g filter="url(#j)"><ellipse cx="14.592" cy="9.743" fill="#8900ff" rx="4.407" ry="29.108" transform="rotate(39.51 14.592 9.743)"/></g><g filter="url(#k)"><ellipse cx="61.728" cy="-5.321" fill="#8900ff" rx="4.407" ry="29.108" transform="rotate(37.892 61.728 -5.32)"/></g><g filter="url(#l)"><ellipse cx="55.618" cy="7.104" fill="#00c2ff" rx="5.971" ry="9.665" transform="rotate(37.892 55.618 7.104)"/></g><g filter="url(#m)"><ellipse cx="12.326" cy="39.103" fill="#8900ff" rx="4.407" ry="29.108" transform="rotate(37.892 12.326 39.103)"/></g><g filter="url(#n)"><ellipse cx="12.326" cy="39.103" fill="#8900ff" rx="4.407" ry="29.108" transform="rotate(37.892 12.326 39.103)"/></g><g filter="url(#o)"><ellipse cx="49.857" cy="30.678" fill="#8900ff" rx="4.407" ry="29.108" transform="rotate(37.892 49.857 30.678)"/></g><g filter="url(#p)"><ellipse cx="52.623" cy="33.171" fill="#00c2ff" rx="5.971" ry="15.297" transform="rotate(37.892 52.623 33.17)"/></g></g><path d="M6.919 0c-9.198 13.166-9.252 33.575 0 46.789h6.215c-9.25-13.214-9.196-33.623 0-46.789zm62.424 0h-6.215c9.198 13.166 9.252 33.575 0 46.789h6.215c9.25-13.214 9.196-33.623 0-46.789" class="parenthesis"/><defs><filter id="b" width="60.045" height="41.654" x="-5.564" y="16.92" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="7.659"/></filter><filter id="c" width="90.34" height="51.437" x="-40.407" y="-6.762" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="7.659"/></filter><filter id="d" width="79.355" height="29.4" x="-35.435" y="2.801" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="e" width="79.579" height="29.4" x="-30.84" y="20.8" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="f" width="79.579" height="29.4" x="-29.307" y="21.949" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="g" width="74.749" height="58.852" x="29.961" y="-17.13" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="7.659"/></filter><filter id="h" width="61.377" height="25.362" x="37.754" y="3.055" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="i" width="61.377" height="25.362" x="37.754" y="3.055" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="j" width="56.045" height="63.649" x="-13.43" y="-22.082" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="k" width="54.814" height="64.646" x="34.321" y="-37.644" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="l" width="33.541" height="35.313" x="38.847" y="-10.552" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="m" width="54.814" height="64.646" x="-15.081" y="6.78" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="n" width="54.814" height="64.646" x="-15.081" y="6.78" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="o" width="54.814" height="64.646" x="22.45" y="-1.645" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter><filter id="p" width="39.409" height="43.623" x="32.919" y="11.36" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feFlood flood-opacity="0" result="BackgroundImageFix"/><feBlend in="SourceGraphic" in2="BackgroundImageFix" result="shape"/><feGaussianBlur result="effect1_foregroundBlur_2002_17286" stdDeviation="4.596"/></filter></defs></svg>
+
+```
+
+api-client.ts:
+```
+import { createClient, type Client } from '@connectrpc/connect';
+import { createConnectTransport } from '@connectrpc/connect-web';
+import { WalletService } from '@src/generated/proto/src/proto/wallet-service_pb';
+
+// Настраиваем транспорт. connect-web делает обычные HTTP/1.1 или HTTP/2 POST-запросы
+const transport = createConnectTransport({
+  baseUrl: import.meta.env.VITE_API_URL || 'http://localhost:8080',
+});
+
+export const apiClient: Client<typeof WalletService> = createClient(WalletService, transport);
+
+```
+
+logger.ts:
+```
+import pino from 'pino';
+
+export const logger = pino({
+  level: import.meta.env.MODE === 'development' ? 'debug' : 'info',
+  browser: {
+    asObject: true,
+    write: (o: unknown) => {
+      console.log(o);
+    }
+  }
+});
+
+```
+
+notification.service.ts:
+```
+import { io, Socket } from 'socket.io-client';
+import { create } from '@bufbuild/protobuf';
+import { TransactionSchema } from '@src/generated/proto/src/proto/wallet-service_pb';
+import { WalletStore } from '@src/wallet/wallet.store';
+import { logger } from '@src/core/logger';
+
+export class NotificationService {
+  private socket: Socket | null = null;
+  private readonly baseUrl: string;
+  private readonly walletStore: WalletStore;
+
+  // Внедряем WalletStore через конструктор, чтобы пушить туда данные
+  constructor(walletStore: WalletStore) {
+    this.baseUrl = import.meta.env.VITE_WS_URL || 'http://localhost:8080';
+    this.walletStore = walletStore;
+  }
+
+  /**
+   * Инициализация WebSocket-соединения
+   */
+  public connect(): void {
+    if (this.socket?.connected) return;
+
+    logger.info({ url: this.baseUrl }, 'Установка WebSocket соединения с бэкендом...');
+    
+    this.socket = io(this.baseUrl, {
+      transports: ['websocket'], // Используем только чистые вебсокеты для скорости
+      autoConnect: true,
+    });
+
+    this.setupListeners();
+  }
+
+  /**
+   * Подписка на обновления конкретного криптокошелька
+   */
+  public subscribeToWallet(walletAddress: string): void {
+    if (!this.socket) {
+      logger.warn('Попытка подписки до инициализации сокета');
+      return;
+    }
+
+    const address = walletAddress.toLowerCase();
+    logger.info({ address }, 'Отправка запроса на подписку на WebSocket комнату');
+    
+    // Отправляем бэкенду событие, которое мы запрограммировали в NestJS Gateway
+    this.socket.emit('subscribe_wallet', { walletAddress: address });
+  }
+
+  /**
+   * Отключение от сервера
+   */
+  public disconnect(): void {
+    if (this.socket) {
+      logger.info('Закрытие WebSocket соединения');
+      this.socket.disconnect();
+      this.socket = null;
+    }
+  }
+
+  /**
+   * Внутренний метод настройки слушателей событий сокета
+   */
+  private setupListeners(): void {
+    if (!this.socket) return;
+
+    this.socket.on('connect', () => {
+      logger.info('⚡ [WebSockets] Успешно подключено к серверу уведомлений');
+    });
+
+    this.socket.on('disconnect', (reason: string) => {
+      logger.warn({ reason }, '❌ [WebSockets] Соединение разорвано');
+    });
+
+    // Подтверждение успешного входа в комнату от нашего NestJS гейтвея
+    this.socket.on('subscribed', (data: { status: string; wallet: string }) => {
+      logger.debug({ data }, 'Успешно зарегистрирована комната на сервере');
+    });
+
+    // Слушаем новые транзакции, прилетающие из Redis Pub/Sub через бэкенд
+    this.socket.on('notification_tx', (rawTx: unknown) => {
+      try {
+        logger.info('Прилетел пуш новой транзакции, валидируем...');
+
+        // Проверяем структуру данных и безопасно приводим к типу на основе Protobuf схемы
+        const txData = rawTx as Record<string, string>;
+        
+        const validProtoTx = create(TransactionSchema, {
+          id: txData.id,
+          txHash: txData.txHash,
+          fromAddress: txData.fromAddress,
+          toAddress: txData.toAddress,
+          amount: txData.amount,
+          timestamp: txData.timestamp,
+          tokenSymbol: txData.tokenSymbol,
+        });
+
+        // Пушим валдиную транзакцию напрямую в экшн MobX стора
+        this.walletStore.addLiveTransaction(validProtoTx);
+        
+      } catch (err) {
+        logger.error({ err, rawTx }, 'Ошибка валидации данных транзакции из WebSocket');
+      }
+    });
+  }
+}
+
+```
+
+root-store.ts:
+```
+import { createContext, useContext } from 'react';
+import { apiClient } from './api-client';
+import { WalletStore } from '@src/wallet/wallet.store';
+import { NotificationService } from './notification.service';
+
+export class RootStore {
+  public walletStore: WalletStore;
+  public notificationService: NotificationService;
+
+  constructor() {
+    this.walletStore = new WalletStore(apiClient);
+    
+    // Инициализируем WebSocket сервис и передаем ему созданный стор
+    this.notificationService = new NotificationService(this.walletStore);
+    
+    // Запускаем постоянное соединение сокета
+    this.notificationService.connect();
+  }
+}
+
+const rootStore = new RootStore();
+const RootStoreContext = createContext<RootStore>(rootStore);
+
+export const useStores = (): RootStore => {
+  const store = useContext(RootStoreContext);
+  if (!store) throw new Error('RootStoreProvider error');
+  return store;
+};
+
+```
+
+wagmi.ts:
+```
+import { http, createConfig } from 'wagmi';
+import { mainnet, localhost } from 'wagmi/chains';
+import { metaMask } from 'wagmi/connectors';
+
+export const config = createConfig({
+  // Задаем поддерживаемые сети
+  chains: [mainnet, localhost],
+  // Подключаем коннекторы (в данном случае MetaMask)
+  connectors: [
+    metaMask(),
+  ],
+  // Настраиваем транспорт для каждой сети через Viem под капотом
+  transports: {
+    [mainnet.id]: http(import.meta.env.VITE_RPC_URL || 'https://llamarpc.com'),
+    [localhost.id]: http('http://127.0.0.1:8545'),
+  },
+});
+
+// Глобальная регистрация типов (Declaration Merging)
+// Позволяет TypeScript автоматически выводить типы во всем приложении без useConfig
+declare module 'wagmi' {
+  interface Register {
+    config: typeof config;
+  }
+}
+
+```
+
+wallet-service_pb.ts:
+```
+// @generated by protoc-gen-es v2.14.1 with parameter "target=ts"
+// @generated from file src/proto/wallet-service.proto (package api.v1, syntax proto3)
+/* eslint-disable */
+
+import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
+import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { Message } from "@bufbuild/protobuf";
+
+/**
+ * Describes the file src/proto/wallet-service.proto.
+ */
+export const file_src_proto_wallet_service: GenFile = /*@__PURE__*/
+  fileDesc("Ch5zcmMvcHJvdG8vd2FsbGV0LXNlcnZpY2UucHJvdG8SBmFwaS52MSJNChZHZXRUcmFuc2FjdGlvbnNSZXF1ZXN0EhYKDndhbGxldF9hZGRyZXNzGAEgASgJEgwKBHBhZ2UYAiABKAUSDQoFbGltaXQYAyABKAUiawoXR2V0VHJhbnNhY3Rpb25zUmVzcG9uc2USKQoMdHJhbnNhY3Rpb25zGAEgAygLMhMuYXBpLnYxLlRyYW5zYWN0aW9uEhMKC3RvdGFsX2NvdW50GAIgASgFEhAKCGhhc19tb3JlGAMgASgIIo0BCgtUcmFuc2FjdGlvbhIKCgJpZBgBIAEoCRIPCgd0eF9oYXNoGAIgASgJEhQKDGZyb21fYWRkcmVzcxgDIAEoCRISCgp0b19hZGRyZXNzGAQgASgJEg4KBmFtb3VudBgFIAEoCRIRCgl0aW1lc3RhbXAYBiABKAkSFAoMdG9rZW5fc3ltYm9sGAcgASgJIjMKGVN0cmVhbVRyYW5zYWN0aW9uc1JlcXVlc3QSFgoOd2FsbGV0X2FkZHJlc3MYASABKAkyswEKDVdhbGxldFNlcnZpY2USUgoPR2V0VHJhbnNhY3Rpb25zEh4uYXBpLnYxLkdldFRyYW5zYWN0aW9uc1JlcXVlc3QaHy5hcGkudjEuR2V0VHJhbnNhY3Rpb25zUmVzcG9uc2USTgoSU3RyZWFtVHJhbnNhY3Rpb25zEiEuYXBpLnYxLlN0cmVhbVRyYW5zYWN0aW9uc1JlcXVlc3QaEy5hcGkudjEuVHJhbnNhY3Rpb24wAWIGcHJvdG8z");
+
+/**
+ * @generated from message api.v1.GetTransactionsRequest
+ */
+export type GetTransactionsRequest = Message<"api.v1.GetTransactionsRequest"> & {
+  /**
+   * @generated from field: string wallet_address = 1;
+   */
+  walletAddress: string;
+
+  /**
+   * @generated from field: int32 page = 2;
+   */
+  page: number;
+
+  /**
+   * @generated from field: int32 limit = 3;
+   */
+  limit: number;
+};
+
+/**
+ * Describes the message api.v1.GetTransactionsRequest.
+ * Use `create(GetTransactionsRequestSchema)` to create a new message.
+ */
+export const GetTransactionsRequestSchema: GenMessage<GetTransactionsRequest> = /*@__PURE__*/
+  messageDesc(file_src_proto_wallet_service, 0);
+
+/**
+ * @generated from message api.v1.GetTransactionsResponse
+ */
+export type GetTransactionsResponse = Message<"api.v1.GetTransactionsResponse"> & {
+  /**
+   * @generated from field: repeated api.v1.Transaction transactions = 1;
+   */
+  transactions: Transaction[];
+
+  /**
+   * @generated from field: int32 total_count = 2;
+   */
+  totalCount: number;
+
+  /**
+   * @generated from field: bool has_more = 3;
+   */
+  hasMore: boolean;
+};
+
+/**
+ * Describes the message api.v1.GetTransactionsResponse.
+ * Use `create(GetTransactionsResponseSchema)` to create a new message.
+ */
+export const GetTransactionsResponseSchema: GenMessage<GetTransactionsResponse> = /*@__PURE__*/
+  messageDesc(file_src_proto_wallet_service, 1);
+
+/**
+ * @generated from message api.v1.Transaction
+ */
+export type Transaction = Message<"api.v1.Transaction"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string tx_hash = 2;
+   */
+  txHash: string;
+
+  /**
+   * @generated from field: string from_address = 3;
+   */
+  fromAddress: string;
+
+  /**
+   * @generated from field: string to_address = 4;
+   */
+  toAddress: string;
+
+  /**
+   * В блокчейне большие числа, передаем как string
+   *
+   * @generated from field: string amount = 5;
+   */
+  amount: string;
+
+  /**
+   * @generated from field: string timestamp = 6;
+   */
+  timestamp: string;
+
+  /**
+   * @generated from field: string token_symbol = 7;
+   */
+  tokenSymbol: string;
+};
+
+/**
+ * Describes the message api.v1.Transaction.
+ * Use `create(TransactionSchema)` to create a new message.
+ */
+export const TransactionSchema: GenMessage<Transaction> = /*@__PURE__*/
+  messageDesc(file_src_proto_wallet_service, 2);
+
+/**
+ * @generated from message api.v1.StreamTransactionsRequest
+ */
+export type StreamTransactionsRequest = Message<"api.v1.StreamTransactionsRequest"> & {
+  /**
+   * @generated from field: string wallet_address = 1;
+   */
+  walletAddress: string;
+};
+
+/**
+ * Describes the message api.v1.StreamTransactionsRequest.
+ * Use `create(StreamTransactionsRequestSchema)` to create a new message.
+ */
+export const StreamTransactionsRequestSchema: GenMessage<StreamTransactionsRequest> = /*@__PURE__*/
+  messageDesc(file_src_proto_wallet_service, 3);
+
+/**
+ * Сервис для работы с кошельками и транзакциями
+ *
+ * @generated from service api.v1.WalletService
+ */
+export const WalletService: GenService<{
+  /**
+   * REST/gRPC запрос: получить историю транзакций с пагинацией
+   *
+   * @generated from rpc api.v1.WalletService.GetTransactions
+   */
+  getTransactions: {
+    methodKind: "unary";
+    input: typeof GetTransactionsRequestSchema;
+    output: typeof GetTransactionsResponseSchema;
+  },
+  /**
+   * Стриминг (Streaming RPC): живой поток новых транзакций кошелька
+   *
+   * @generated from rpc api.v1.WalletService.StreamTransactions
+   */
+  streamTransactions: {
+    methodKind: "server_streaming";
+    input: typeof StreamTransactionsRequestSchema;
+    output: typeof TransactionSchema;
+  },
+}> = /*@__PURE__*/
+  serviceDesc(file_src_proto_wallet_service, 0);
+
+
+```
+
+wallet-service.proto:
+```
+syntax = "proto3";
+
+package api.v1;
+
+// Сервис для работы с кошельками и транзакциями
+service WalletService {
+  // REST/gRPC запрос: получить историю транзакций с пагинацией
+  rpc GetTransactions (GetTransactionsRequest) returns (GetTransactionsResponse);
+
+  // Стриминг (Streaming RPC): живой поток новых транзакций кошелька
+  rpc StreamTransactions (StreamTransactionsRequest) returns (stream Transaction);
+}
+
+message GetTransactionsRequest {
+  string wallet_address = 1;
+  int32 page = 2;
+  int32 limit = 3;
+}
+
+message GetTransactionsResponse {
+  repeated Transaction transactions = 1;
+  int32 total_count = 2;
+  bool has_more = 3;
+}
+
+message Transaction {
+  string id = 1;
+  string tx_hash = 2;
+  string from_address = 3;
+  string to_address = 4;
+  string amount = 5;       // В блокчейне большие числа, передаем как string
+  string timestamp = 6;
+  string token_symbol = 7;
+}
+
+message StreamTransactionsRequest {
+  string wallet_address = 1;
+}
+
+```
+
+wallet.component.tsx:
+```
+import { useEffect } from 'react';
+import { observer } from 'mobx-react-lite';
+import { useAccount, useConnect, useDisconnect } from 'wagmi';
+import { useStores } from '@src/core/root-store';
+import { logger } from '@src/core/logger';
+
+export const WalletComponent = observer(() => {
+  // 1. Достаем наш строго типизированный WalletStore из MobX контекста
+  const { walletStore, notificationService } = useStores();
+
+  // 2. Достаем Web3-состояния и методы из Wagmi
+  const { address, isConnected } = useAccount();
+  const { connect, connectors } = useConnect();
+  const { disconnect } = useDisconnect();
+
+  // 3. Реагируем на изменение адреса кошелька в MetaMask
+  useEffect(() => {
+    if (isConnected && address) {
+      logger.info({ address }, 'Кошелек подключен, запускаем gRPC и WebSockets...');
+      
+      // 1. Загружаем историю через gRPC-Web
+      walletStore.fetchTransactions(address);
+      
+      // 2. Подписываем сокет на живые обновления для этого адреса
+      notificationService.subscribeToWallet(address);
+    }
+  }, [isConnected, address, walletStore, notificationService]);
+
+  // Сценарий 1: Пользователь еще не подключил кошелек
+  if (!isConnected) {
+    return (
+      <div style={{ padding: '16px', border: '1px solid #ccc', borderRadius: '8px' }}>
+        <h3>Подключите ваш Web3 кошелек</h3>
+        {connectors.map((connector) => (
+          <button
+            key={connector.id}
+            onClick={() => connect({ connector })}
+            style={{ padding: '10px 20px', cursor: 'pointer', marginRight: '8px' }}
+          >
+            Войти через {connector.name}
+          </button>
+        ))}
+      </div>
+    );
+  }
+
+  // Сценарий 2: Кошелек подключен, отображаем панель управления
+  return (
+    <div style={{ marginTop: '20px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f5f5f5', padding: '12px', borderRadius: '8px' }}>
+        <div>
+          <strong>Статус:</strong> Подключено к адресу: <code style={{ color: 'green' }}>{address}</code>
+        </div>
+        <button 
+          onClick={() => disconnect()} 
+          style={{ padding: '6px 12px', background: '#ff4d4f', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+        >
+          Выйти
+        </button>
+      </div>
+
+      <h3 style={{ marginTop: '24px' }}>История транзакций (gRPC-Web)</h3>
+
+      {/* Индикатор загрузки */}
+      {walletStore.isLoading && <p>🔄 Загрузка транзакций с бэкенда...</p>}
+
+      {/* Вывод ошибки */}
+      {walletStore.error && <p style={{ color: 'red' }}>⚠️ {walletStore.error}</p>}
+
+      {/* Таблица транзакций */}
+      {!walletStore.isLoading && !walletStore.error && (
+        <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '12px' }}>
+          <thead>
+            <tr style={{ background: '#e8e8e8', textAlign: 'left' }}>
+              <th style={{ padding: '8px', border: '1px solid #ddd' }}>Хэш</th>
+              <th style={{ padding: '8px', border: '1px solid #ddd' }}>Откуда</th>
+              <th style={{ padding: '8px', border: '1px solid #ddd' }}>Куда</th>
+              <th style={{ padding: '8px', border: '1px solid #ddd' }}>Сумма</th>
+              <th style={{ padding: '8px', border: '1px solid #ddd' }}>Токен</th>
+            </tr>
+          </thead>
+          <tbody>
+            {walletStore.transactions.length === 0 ? (
+              <tr>
+                <td colSpan={5} style={{ padding: '12px', textAlign: 'center', color: '#999' }}>
+                  Транзакций не найдено. Попробуйте совершить перевод в тестовой сети.
+                </td>
+              </tr>
+            ) : (
+              walletStore.transactions.map((tx) => (
+                <tr key={tx.id} style={{ borderBottom: '1px solid #ddd' }}>
+                  <td style={{ padding: '8px', fontFamily: 'monospace' }}>
+                    {tx.txHash.slice(0, 6)}...{tx.txHash.slice(-4)}
+                  </td>
+                  <td style={{ padding: '8px', fontFamily: 'monospace' }}>
+                    {tx.fromAddress.slice(0, 6)}...{tx.fromAddress.slice(-4)}
+                  </td>
+                  <td style={{ padding: '8px', fontFamily: 'monospace' }}>
+                    {tx.toAddress.slice(0, 6)}...{tx.toAddress.slice(-4)}
+                  </td>
+                  <td style={{ padding: '8px', fontWeight: 'bold' }}>{tx.amount}</td>
+                  <td style={{ padding: '8px' }}>
+                    <span style={{ background: '#1890ff', color: '#fff', padding: '2px 6px', borderRadius: '4px', fontSize: '12px' }}>
+                      {tx.tokenSymbol}
+                    </span>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+});
+
+```
+
+wallet.store.ts:
+```
+import { makeAutoObservable, runInAction } from 'mobx';
+import { type Client } from '@connectrpc/connect';
+import { WalletService } from '@src/generated/proto/src/proto/wallet-service_pb';
+import { type Transaction } from '@src/generated/proto/src/proto/wallet-service_pb';
+import { logger } from '@src/core/logger';
+
+export class WalletStore {
+  // Строго типизированные состояния
+  public transactions: Transaction[] = [];
+  public isLoading = false;
+  public error: string | null = null;
+  private readonly client: Client<typeof WalletService>;
+
+  // Внедряем gRPC клиент через конструктор (чистый DI)
+  constructor(client: Client<typeof WalletService>) {
+    this.client = client;
+    makeAutoObservable(this);
+  }
+
+  /**
+   * Экшн загрузки истории транзакций с бэкенда
+   */
+  async fetchTransactions(walletAddress: string, page = 1, limit = 20): Promise<void> {
+    this.isLoading = true;
+    this.error = null;
+    logger.info({ walletAddress, page }, 'Запрос транзакций кошелька через gRPC');
+
+    try {
+      const response = await this.client.getTransactions({
+        walletAddress,
+        page,
+        limit,
+      });
+
+      // В MobX 6 все изменения observable-полей после await должны быть внутри runInAction
+      runInAction(() => {
+        this.transactions = response.transactions;
+        this.isLoading = false;
+      });
+    } catch (err: unknown) {
+      logger.error(err, 'Ошибка при получении транзакций через ConnectRPC');
+      runInAction(() => {
+        this.error = 'Не удалось загрузить историю транзакций';
+        this.isLoading = false;
+      });
+    }
+  }
+
+  /**
+   * Экшн для добавления транзакции в реальном времени (вызовется из WebSocket-клиента)
+   */
+  addLiveTransaction(tx: Transaction): void {
+    logger.debug({ txHash: tx.txHash }, 'Новая транзакция добавлена в MobX из WebSocket');
+    this.transactions.unshift(tx);
+  }
+}
+
+```
+
+wallet.store.test.ts:
+```
+import { describe, it, expect, vi } from 'vitest';
+import { WalletStore } from '@src/wallet/wallet.store';
+import { create } from '@bufbuild/protobuf';
+import { type Client } from '@connectrpc/connect';
+import { 
+  WalletService, 
+  GetTransactionsResponseSchema, 
+  TransactionSchema 
+} from '@src/generated/proto/src/proto/wallet-service_pb';
+
+describe('WalletStore', () => {
+  it('должен успешно загружать транзакции и обновлять состояние', async () => {
+    // 1. Создаем строго типизированную фейковую транзакцию через фабрику Protobuf
+    const mockTx = create(TransactionSchema, {
+      id: 'tx-1',
+      txHash: '0xhash123',
+      fromAddress: '0xfrom',
+      toAddress: '0xto',
+      amount: '1000',
+      timestamp: new Date().toISOString(),
+      tokenSymbol: 'USDT',
+    });
+
+    // 2. Создаем мок gRPC-клиента без any. 
+    // Используем фейк-функцию vi.fn() (или jest.fn()), которая имитирует ответ сервера
+    const mockGrpcClient = {
+      getTransactions: vi.fn().mockResolvedValue(
+        create(GetTransactionsResponseSchema, {
+          transactions: [mockTx],
+          totalCount: 1,
+          hasMore: false,
+        })
+      ),
+    } as unknown as Client<typeof WalletService>; // Безопасное приведение к типу контракта
+
+    // 3. Передаем мок напрямую в конструктор (Чистый Dependency Injection)
+    const store = new WalletStore(mockGrpcClient);
+
+    // Проверяем начальное состояние стора
+    expect(store.transactions).toHaveLength(0);
+    expect(store.isLoading).toBe(false);
+
+    // 4. Запускаем экшн загрузки
+    const testAddress = '0x1234567890abcdef1234567890abcdef12345678';
+    const fetchPromise = store.fetchTransactions(testAddress);
+
+    // Проверяем, что во время запроса включился индикатор загрузки
+    expect(store.isLoading).toBe(true);
+
+    await fetchPromise;
+
+    // 5. Проверяем финальное состояние после завершения асинхронного экшна
+    expect(store.isLoading).toBe(false);
+    expect(store.error).toBeNull();
+    expect(store.transactions).toHaveLength(1);
+    expect(store.transactions[0].id).toBe('tx-1');
+    
+    // Проверяем, что gRPC-клиент был вызван с правильными параметрами
+    expect(mockGrpcClient.getTransactions).toHaveBeenCalledWith({
+      walletAddress: testAddress,
+      page: 1,
+      limit: 20,
+    });
+  });
+
+  it('должен обрабатывать ошибки сети и записывать их в состояние', async () => {
+    // Имитируем падение gRPC сервера
+    const mockGrpcClient = {
+      getTransactions: vi.fn().mockRejectedValue(new Error('gRPC Connection Refused')),
+    } as unknown as Client<typeof WalletService>;
+
+    const store = new WalletStore(mockGrpcClient);
+
+    await store.fetchTransactions('0xaddress');
+
+    // Проверяем, что стор корректно отработал ошибку
+    expect(store.isLoading).toBe(false);
+    expect(store.transactions).toHaveLength(0);
+    expect(store.error).toBe('Не удалось загрузить историю транзакций');
+  });
+
+  it('должен реактивно добавлять живые транзакции из вебсокетов в начало списка', () => {
+    // Для этого теста gRPC клиент вообще не будет вызываться, передаем пустой объект
+    const dummyClient = {} as Client<typeof WalletService>;
+    const store = new WalletStore(dummyClient);
+
+    const liveTx = create(TransactionSchema, {
+      id: 'tx-live',
+      txHash: '0xlivehash',
+      fromAddress: '0xfrom',
+      toAddress: '0xto',
+      amount: '500',
+      timestamp: new Date().toISOString(),
+      tokenSymbol: 'USDT',
+    });
+
+    // Вызываем экшн добавления транзакции в реальном времени
+    store.addLiveTransaction(liveTx);
+
+    expect(store.transactions).toHaveLength(1);
+    expect(store.transactions[0].id).toBe('tx-live');
+  });
+});
+
+```
