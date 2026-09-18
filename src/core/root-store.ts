@@ -9,20 +9,20 @@ export class RootStore {
 
   constructor() {
     this.walletStore = new WalletStore(apiClient);
-    
-    // Инициализируем WebSocket сервис и передаем ему созданный стор
     this.notificationService = new NotificationService(this.walletStore);
-    
-    // Запускаем постоянное соединение сокета
-    this.notificationService.connect();
   }
 }
 
-const rootStore = new RootStore();
-const RootStoreContext = createContext<RootStore>(rootStore);
+// Передаем null в качестве дефолтного значения контекста
+const RootStoreContext = createContext<RootStore | null>(null);
+
+// Экспортируем провайдер для App.tsx
+export const RootStoreProvider = RootStoreContext.Provider;
 
 export const useStores = (): RootStore => {
   const store = useContext(RootStoreContext);
-  if (!store) throw new Error('RootStoreProvider error');
+  if (!store) {
+    throw new Error('useStores должен использоваться внутри RootStoreProvider');
+  }
   return store;
 };

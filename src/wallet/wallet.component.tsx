@@ -17,11 +17,10 @@ export const WalletComponent = observer(() => {
   useEffect(() => {
     if (isConnected && address) {
       logger.info({ address }, 'Кошелек подключен, запускаем gRPC и WebSockets...');
-      
-      // 1. Загружаем историю через gRPC-Web
+      // Загружаем историю через gRPC-Web
+      notificationService.connect();
       walletStore.fetchTransactions(address);
-      
-      // 2. Подписываем сокет на живые обновления для этого адреса
+      // Подписываем сокет на живые обновления для этого адреса
       notificationService.subscribeToWallet(address);
     }
   }, [isConnected, address, walletStore, notificationService]);
