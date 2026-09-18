@@ -1,17 +1,47 @@
 import { useEffect } from 'react';
 import { observer } from 'mobx-react-lite';
-import { useAccount, useConnect, useDisconnect } from 'wagmi';
+import {
+  useConnection,
+  useConnect,
+  useConnectors,
+  useDisconnect,
+} from 'wagmi';
+
 import { useStores } from '@src/core/root-store';
 import { logger } from '@src/core/logger';
 
 export const WalletComponent = observer(() => {
-  // 1. Достаем наш строго типизированный WalletStore из MobX контекста
   const { walletStore, notificationService } = useStores();
 
-  // 2. Достаем Web3-состояния и методы из Wagmi
-  const { address, isConnected } = useAccount();
-  const { connect, connectors } = useConnect();
-  const { disconnect } = useDisconnect();
+  const {
+    address,
+    isConnected,
+  } = useConnection();
+
+  const {
+    mutate: connect,
+    error: connectError,
+    isPending: isConnecting,
+  } = useConnect();
+
+  const connectors = useConnectors();
+
+  const {
+    mutate: disconnect,
+  } = useDisconnect();
+
+  console.log('WAGMI STATE', {
+    address,
+    isConnected,
+    connectors: connectors.map((c) => ({
+      id: c.id,
+      uid: c.uid,
+      name: c.name,
+      type: c.type,
+    })),
+    connectError,
+    isConnecting,
+  });
 
   // 3. Реагируем на изменение адреса кошелька в MetaMask
   useEffect(() => {
