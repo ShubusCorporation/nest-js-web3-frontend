@@ -5,6 +5,13 @@ import tsconfigPaths from 'vite-tsconfig-paths';
 export default defineConfig({
   plugins: [
     react(),
-    tsconfigPaths() ,
-  ], 
+    tsconfigPaths(),
+  ],
+
+  resolve: {
+    dedupe: [
+      'react',
+      'react-dom',
+    ],
+  },
 });
