@@ -11,7 +11,7 @@ export class NotificationService {
 
   // Внедряем WalletStore через конструктор, чтобы пушить туда данные
   constructor(walletStore: WalletStore) {
-    this.baseUrl = import.meta.env.VITE_WS_URL || 'http://localhost:8080';
+    this.baseUrl = import.meta.env.VITE_WS_URL || 'http://localhost:8081';
     this.walletStore = walletStore;
   }
 
