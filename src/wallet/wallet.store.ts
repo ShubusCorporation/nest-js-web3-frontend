@@ -50,6 +50,8 @@ export class WalletStore {
    * Экшн для добавления транзакции в реальном времени (вызовется из WebSocket-клиента)
    */
   addLiveTransaction(tx: Transaction): void {
+    const isExist = this.transactions.some(t => t.id === tx.id || t.txHash === tx.txHash);
+    if (isExist) return;
     logger.debug({ txHash: tx.txHash }, 'Новая транзакция добавлена в MobX из WebSocket');
     this.transactions.unshift(tx);
   }
