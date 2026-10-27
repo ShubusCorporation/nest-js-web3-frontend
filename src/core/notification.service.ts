@@ -34,17 +34,30 @@ export class NotificationService {
   /**
    * Подписка на обновления конкретного криптокошелька
    */
-  public subscribeToWallet(walletAddress: string): void {
+  public subscribeToWallet(walletAddress: string, userAddress: string): void {
     if (!this.socket) {
       logger.warn('Попытка подписки до инициализации сокета');
       return;
     }
-
     const address = walletAddress.toLowerCase();
+    const userWallet = userAddress.toLowerCase();
     logger.info({ address }, 'Отправка запроса на подписку на WebSocket комнату');
-    
+
     // Отправляем бэкенду событие, которое мы запрограммировали в NestJS Gateway
-    this.socket.emit('subscribe_wallet', { walletAddress: address });
+    this.socket.emit('subscribe_wallet', { walletAddress: address, userWallet });
+  }
+
+  /**
+   * Unsubscribe watching particular crypto wallet
+   */
+  public unsubscribeFromWallet(walletAddress: string, userAddress: string): void {
+    if (!this.socket) {
+      logger.warn('Unsubscription attempt before socket initialization');
+      return;
+    }
+    const address = walletAddress.toLowerCase();
+    const userWallet = userAddress.toLowerCase();
+    this.socket.emit('unsubscribe_wallet', { walletAddress: address, userWallet });
   }
 
   /**

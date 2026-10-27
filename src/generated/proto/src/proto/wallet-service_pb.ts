@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file src/proto/wallet-service.proto.
  */
 export const file_src_proto_wallet_service: GenFile = /*@__PURE__*/
-  fileDesc("Ch5zcmMvcHJvdG8vd2FsbGV0LXNlcnZpY2UucHJvdG8SBmFwaS52MSJNChZHZXRUcmFuc2FjdGlvbnNSZXF1ZXN0EhYKDndhbGxldF9hZGRyZXNzGAEgASgJEgwKBHBhZ2UYAiABKAUSDQoFbGltaXQYAyABKAUiawoXR2V0VHJhbnNhY3Rpb25zUmVzcG9uc2USKQoMdHJhbnNhY3Rpb25zGAEgAygLMhMuYXBpLnYxLlRyYW5zYWN0aW9uEhMKC3RvdGFsX2NvdW50GAIgASgFEhAKCGhhc19tb3JlGAMgASgIIo0BCgtUcmFuc2FjdGlvbhIKCgJpZBgBIAEoCRIPCgd0eF9oYXNoGAIgASgJEhQKDGZyb21fYWRkcmVzcxgDIAEoCRISCgp0b19hZGRyZXNzGAQgASgJEg4KBmFtb3VudBgFIAEoCRIRCgl0aW1lc3RhbXAYBiABKAkSFAoMdG9rZW5fc3ltYm9sGAcgASgJIjMKGVN0cmVhbVRyYW5zYWN0aW9uc1JlcXVlc3QSFgoOd2FsbGV0X2FkZHJlc3MYASABKAkyswEKDVdhbGxldFNlcnZpY2USUgoPR2V0VHJhbnNhY3Rpb25zEh4uYXBpLnYxLkdldFRyYW5zYWN0aW9uc1JlcXVlc3QaHy5hcGkudjEuR2V0VHJhbnNhY3Rpb25zUmVzcG9uc2USTgoSU3RyZWFtVHJhbnNhY3Rpb25zEiEuYXBpLnYxLlN0cmVhbVRyYW5zYWN0aW9uc1JlcXVlc3QaEy5hcGkudjEuVHJhbnNhY3Rpb24wAWIGcHJvdG8z");
+  fileDesc("Ch5zcmMvcHJvdG8vd2FsbGV0LXNlcnZpY2UucHJvdG8SBmFwaS52MSJiChZHZXRUcmFuc2FjdGlvbnNSZXF1ZXN0EhYKDndhbGxldF9hZGRyZXNzGAEgASgJEgwKBHBhZ2UYAiABKAUSDQoFbGltaXQYAyABKAUSEwoLdXNlcl93YWxsZXQYBCABKAkiawoXR2V0VHJhbnNhY3Rpb25zUmVzcG9uc2USKQoMdHJhbnNhY3Rpb25zGAEgAygLMhMuYXBpLnYxLlRyYW5zYWN0aW9uEhMKC3RvdGFsX2NvdW50GAIgASgFEhAKCGhhc19tb3JlGAMgASgIIo0BCgtUcmFuc2FjdGlvbhIKCgJpZBgBIAEoCRIPCgd0eF9oYXNoGAIgASgJEhQKDGZyb21fYWRkcmVzcxgDIAEoCRISCgp0b19hZGRyZXNzGAQgASgJEg4KBmFtb3VudBgFIAEoCRIRCgl0aW1lc3RhbXAYBiABKAkSFAoMdG9rZW5fc3ltYm9sGAcgASgJIkgKGVN0cmVhbVRyYW5zYWN0aW9uc1JlcXVlc3QSFgoOd2FsbGV0X2FkZHJlc3MYASABKAkSEwoLdXNlcl93YWxsZXQYAiABKAkiWQoZVG9nZ2xlV2F0Y2hBZGRyZXNzUmVxdWVzdBITCgt1c2VyX3dhbGxldBgBIAEoCRIWCg53YWxsZXRfYWRkcmVzcxgCIAEoCRIPCgdlbmFibGVkGAMgASgIImcKGlRvZ2dsZVdhdGNoQWRkcmVzc1Jlc3BvbnNlEg8KB3N1Y2Nlc3MYASABKAgSFgoOd2FsbGV0X2FkZHJlc3MYAiABKAkSDwoHZW5hYmxlZBgDIAEoCBIPCgdtZXNzYWdlGAQgASgJIjEKGkdldFdhdGNoZWRBZGRyZXNzZXNSZXF1ZXN0EhMKC3VzZXJfd2FsbGV0GAEgASgJIlUKDldhdGNoZWRBZGRyZXNzEhYKDndhbGxldF9hZGRyZXNzGAEgASgJEgwKBG5hbWUYAiABKAkSDAoEdHlwZRgDIAEoCRIPCgdlbmFibGVkGAQgASgIIkgKG0dldFdhdGNoZWRBZGRyZXNzZXNSZXNwb25zZRIpCglhZGRyZXNzZXMYASADKAsyFi5hcGkudjEuV2F0Y2hlZEFkZHJlc3My8AIKDVdhbGxldFNlcnZpY2USUgoPR2V0VHJhbnNhY3Rpb25zEh4uYXBpLnYxLkdldFRyYW5zYWN0aW9uc1JlcXVlc3QaHy5hcGkudjEuR2V0VHJhbnNhY3Rpb25zUmVzcG9uc2USTgoSU3RyZWFtVHJhbnNhY3Rpb25zEiEuYXBpLnYxLlN0cmVhbVRyYW5zYWN0aW9uc1JlcXVlc3QaEy5hcGkudjEuVHJhbnNhY3Rpb24wARJbChJUb2dnbGVXYXRjaEFkZHJlc3MSIS5hcGkudjEuVG9nZ2xlV2F0Y2hBZGRyZXNzUmVxdWVzdBoiLmFwaS52MS5Ub2dnbGVXYXRjaEFkZHJlc3NSZXNwb25zZRJeChNHZXRXYXRjaGVkQWRkcmVzc2VzEiIuYXBpLnYxLkdldFdhdGNoZWRBZGRyZXNzZXNSZXF1ZXN0GiMuYXBpLnYxLkdldFdhdGNoZWRBZGRyZXNzZXNSZXNwb25zZWIGcHJvdG8z");
 
 /**
  * @generated from message api.v1.GetTransactionsRequest
@@ -30,6 +30,13 @@ export type GetTransactionsRequest = Message<"api.v1.GetTransactionsRequest"> & 
    * @generated from field: int32 limit = 3;
    */
   limit: number;
+
+  /**
+   * Адрес пользователя, которому принадлежит подписка.
+   *
+   * @generated from field: string user_wallet = 4;
+   */
+  userWallet: string;
 };
 
 /**
@@ -91,8 +98,6 @@ export type Transaction = Message<"api.v1.Transaction"> & {
   toAddress: string;
 
   /**
-   * В блокчейне большие числа, передаем как string
-   *
    * @generated from field: string amount = 5;
    */
   amount: string;
@@ -123,6 +128,13 @@ export type StreamTransactionsRequest = Message<"api.v1.StreamTransactionsReques
    * @generated from field: string wallet_address = 1;
    */
   walletAddress: string;
+
+  /**
+   * При необходимости сервер может проверять подписку пользователя.
+   *
+   * @generated from field: string user_wallet = 2;
+   */
+  userWallet: string;
 };
 
 /**
@@ -133,13 +145,138 @@ export const StreamTransactionsRequestSchema: GenMessage<StreamTransactionsReque
   messageDesc(file_src_proto_wallet_service, 3);
 
 /**
- * Сервис для работы с кошельками и транзакциями
+ * @generated from message api.v1.ToggleWatchAddressRequest
+ */
+export type ToggleWatchAddressRequest = Message<"api.v1.ToggleWatchAddressRequest"> & {
+  /**
+   * @generated from field: string user_wallet = 1;
+   */
+  userWallet: string;
+
+  /**
+   * @generated from field: string wallet_address = 2;
+   */
+  walletAddress: string;
+
+  /**
+   * @generated from field: bool enabled = 3;
+   */
+  enabled: boolean;
+};
+
+/**
+ * Describes the message api.v1.ToggleWatchAddressRequest.
+ * Use `create(ToggleWatchAddressRequestSchema)` to create a new message.
+ */
+export const ToggleWatchAddressRequestSchema: GenMessage<ToggleWatchAddressRequest> = /*@__PURE__*/
+  messageDesc(file_src_proto_wallet_service, 4);
+
+/**
+ * @generated from message api.v1.ToggleWatchAddressResponse
+ */
+export type ToggleWatchAddressResponse = Message<"api.v1.ToggleWatchAddressResponse"> & {
+  /**
+   * @generated from field: bool success = 1;
+   */
+  success: boolean;
+
+  /**
+   * @generated from field: string wallet_address = 2;
+   */
+  walletAddress: string;
+
+  /**
+   * @generated from field: bool enabled = 3;
+   */
+  enabled: boolean;
+
+  /**
+   * @generated from field: string message = 4;
+   */
+  message: string;
+};
+
+/**
+ * Describes the message api.v1.ToggleWatchAddressResponse.
+ * Use `create(ToggleWatchAddressResponseSchema)` to create a new message.
+ */
+export const ToggleWatchAddressResponseSchema: GenMessage<ToggleWatchAddressResponse> = /*@__PURE__*/
+  messageDesc(file_src_proto_wallet_service, 5);
+
+/**
+ * @generated from message api.v1.GetWatchedAddressesRequest
+ */
+export type GetWatchedAddressesRequest = Message<"api.v1.GetWatchedAddressesRequest"> & {
+  /**
+   * @generated from field: string user_wallet = 1;
+   */
+  userWallet: string;
+};
+
+/**
+ * Describes the message api.v1.GetWatchedAddressesRequest.
+ * Use `create(GetWatchedAddressesRequestSchema)` to create a new message.
+ */
+export const GetWatchedAddressesRequestSchema: GenMessage<GetWatchedAddressesRequest> = /*@__PURE__*/
+  messageDesc(file_src_proto_wallet_service, 6);
+
+/**
+ * @generated from message api.v1.WatchedAddress
+ */
+export type WatchedAddress = Message<"api.v1.WatchedAddress"> & {
+  /**
+   * @generated from field: string wallet_address = 1;
+   */
+  walletAddress: string;
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name: string;
+
+  /**
+   * @generated from field: string type = 3;
+   */
+  type: string;
+
+  /**
+   * @generated from field: bool enabled = 4;
+   */
+  enabled: boolean;
+};
+
+/**
+ * Describes the message api.v1.WatchedAddress.
+ * Use `create(WatchedAddressSchema)` to create a new message.
+ */
+export const WatchedAddressSchema: GenMessage<WatchedAddress> = /*@__PURE__*/
+  messageDesc(file_src_proto_wallet_service, 7);
+
+/**
+ * @generated from message api.v1.GetWatchedAddressesResponse
+ */
+export type GetWatchedAddressesResponse = Message<"api.v1.GetWatchedAddressesResponse"> & {
+  /**
+   * @generated from field: repeated api.v1.WatchedAddress addresses = 1;
+   */
+  addresses: WatchedAddress[];
+};
+
+/**
+ * Describes the message api.v1.GetWatchedAddressesResponse.
+ * Use `create(GetWatchedAddressesResponseSchema)` to create a new message.
+ */
+export const GetWatchedAddressesResponseSchema: GenMessage<GetWatchedAddressesResponse> = /*@__PURE__*/
+  messageDesc(file_src_proto_wallet_service, 8);
+
+/**
+ * Сервис для работы с кошельками и транзакциями.
  *
  * @generated from service api.v1.WalletService
  */
 export const WalletService: GenService<{
   /**
-   * REST/gRPC запрос: получить историю транзакций с пагинацией
+   * Получить историю транзакций с пагинацией.
    *
    * @generated from rpc api.v1.WalletService.GetTransactions
    */
@@ -149,7 +286,7 @@ export const WalletService: GenService<{
     output: typeof GetTransactionsResponseSchema;
   },
   /**
-   * Стриминг (Streaming RPC): живой поток новых транзакций кошелька
+   * Поток новых транзакций отслеживаемого кошелька.
    *
    * @generated from rpc api.v1.WalletService.StreamTransactions
    */
@@ -157,6 +294,26 @@ export const WalletService: GenService<{
     methodKind: "server_streaming";
     input: typeof StreamTransactionsRequestSchema;
     output: typeof TransactionSchema;
+  },
+  /**
+   * Включить или отключить мониторинг адреса для пользователя.
+   *
+   * @generated from rpc api.v1.WalletService.ToggleWatchAddress
+   */
+  toggleWatchAddress: {
+    methodKind: "unary";
+    input: typeof ToggleWatchAddressRequestSchema;
+    output: typeof ToggleWatchAddressResponseSchema;
+  },
+  /**
+   * Получить список адресов, отслеживаемых пользователем.
+   *
+   * @generated from rpc api.v1.WalletService.GetWatchedAddresses
+   */
+  getWatchedAddresses: {
+    methodKind: "unary";
+    input: typeof GetWatchedAddressesRequestSchema;
+    output: typeof GetWatchedAddressesResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_src_proto_wallet_service, 0);
