@@ -113,38 +113,14 @@ export class WalletStore {
   }
 
   /**
-   * Включение или отключение мониторинга адреса.
+   * Enables or disables wallet monitoring in the local store.
    */
-  async toggleWatchAddress({
+  toggleWatchAddress({
     address,
     enabled,
-    userWallet,
-  }: ToggleWatchAddressParams): Promise<void> {
+  }: ToggleWatchAddressParams): void {
     const walletAddress = address.toLowerCase();
-    const normalizedUserWallet = userWallet.toLowerCase();
 
-    logger.info(
-      {
-        walletAddress,
-        userWallet: normalizedUserWallet,
-        enabled,
-      },
-      'Изменение подписки на мониторинг кошелька',
-    );
-
-    /*const response = await this.client.toggleWatchAddress({
-      userWallet: normalizedUserWallet,
-      walletAddress,
-      enabled,
-    });
-
-    if (!response.success) {
-      throw new Error(
-        response.message || 'Не удалось изменить подписку на кошелёк',
-      );
-    }*/
-
-    // Обновляем локальный watchlist только после подтверждения сервера.
     runInAction(() => {
       const existing = this.watchedAddresses.find(
         (item) =>
@@ -158,17 +134,12 @@ export class WalletStore {
           create(WatchedAddressSchema, {
             walletAddress,
             name: '',
-            type: '',
+            type: 'wallet',
             enabled: true,
           }),
         );
       }
     });
-
-    logger.info(
-      { walletAddress, enabled },
-      'Подписка на мониторинг кошелька обновлена',
-    );
   }
 
   /**
@@ -177,6 +148,7 @@ export class WalletStore {
    */
   async getWatchedAddresses(userWallet: string): Promise<void> {
     this.isWatchlistLoading = true;
+    this.error = null;
 
     try {
       const response = await this.client.getWatchedAddresses({
@@ -184,7 +156,11 @@ export class WalletStore {
       });
 
       runInAction(() => {
-        this.watchedAddresses = response.addresses;
+        this.watchedAddresses = response.addresses.map((item) => ({
+          ...item,
+          walletAddress: item.walletAddress.toLowerCase(),
+        }));
+
         this.isWatchlistLoading = false;
       });
 
@@ -208,6 +184,16 @@ export class WalletStore {
 
       throw err;
     }
+  }
+
+  isAddressWatched(address: string): boolean {
+    const normalizedAddress = address.toLowerCase();
+
+    return this.watchedAddresses.some(
+      (item) =>
+        item.walletAddress.toLowerCase() === normalizedAddress &&
+        item.enabled,
+    );
   }
 
   /**

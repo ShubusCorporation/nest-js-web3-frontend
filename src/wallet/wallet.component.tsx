@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { observer } from 'mobx-react-lite';
 import {
   useConnection,
@@ -21,6 +21,7 @@ const WATCHLIST = [
   { id: '8', name: 'Lido Depositor Bot', address: '0xF82aC5937A20dC862F9bc0668779031E06000f17', type: 'protocol bot' },
   { id: '9', name: 'Lido stETH', address: '0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84', type: 'protocol contract' },
   { id: '10', name: 'Uniswap UNI Token', address: '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984', type: 'protocol contract' },
+  { id: '11', name: 'OKX: Hot Wallet 5',  address: '0x559432e18b281731c054cd703d4b49872be4ed53', type: 'hot wallet'}
 ] as const;
 
 export const WalletComponent = observer(() => {
@@ -36,9 +37,6 @@ export const WalletComponent = observer(() => {
   } = useConnect();
 
   const { mutate: disconnect } = useDisconnect();
-
-  const [activeSubscriptions, setActiveSubscriptions] =
-    useState<Record<string, boolean>>({});
 
   // Подключение транспорта уведомлений после авторизации.
   useEffect(() => {
@@ -62,13 +60,10 @@ export const WalletComponent = observer(() => {
     }
 
     const targetAddress = walletItem.address.toLowerCase();
-    const isCurrentlyTracked = !!activeSubscriptions[walletItem.id];
+    const isCurrentlyTracked = walletStore.isAddressWatched(
+      walletItem.address,
+    );
     const nextState = !isCurrentlyTracked;
-
-    setActiveSubscriptions((prev) => ({
-      ...prev,
-      [walletItem.id]: nextState,
-    }));
 
     try {
       logger.info(
@@ -76,19 +71,17 @@ export const WalletComponent = observer(() => {
         `Изменение статуса подписки для кошелька ${walletItem.name} на ${nextState}`,
       );
 
-      // Сохранение состояния подписки на бэкенде.
-      if (walletStore.toggleWatchAddress) {
-        await walletStore.toggleWatchAddress({
-          address: targetAddress,
-          enabled: nextState,
-          userWallet: userAddress,
-        });
-      }
+      // Сохранение состояния подписки.
+      await walletStore.toggleWatchAddress({
+        address: targetAddress,
+        enabled: nextState,
+        userWallet: userAddress,
+      });
 
-      // Управление подписками и историей транзакций.
+      // Управление подписками и историей транзакций, сохранение на бэкенде.
       if (nextState) {
         notificationService.subscribeToWallet(targetAddress, userAddress);
-        await walletStore.fetchTransactions(userAddress);
+        await walletStore.fetchTransactions(targetAddress);
       } else {
         if (notificationService.unsubscribeFromWallet) {
           notificationService.unsubscribeFromWallet(targetAddress, userAddress);
@@ -99,16 +92,11 @@ export const WalletComponent = observer(() => {
         }
       }
     } catch (error) {
+      // The store handles state rollback on failure, so no manual checkbox state update is needed here.
       logger.error(
         { error },
         `Не удалось изменить статус отслеживания для ${targetAddress}`,
       );
-
-      // Откат состояния чекбокса при ошибке.
-      setActiveSubscriptions((prev) => ({
-        ...prev,
-        [walletItem.id]: isCurrentlyTracked,
-      }));
     }
   };
 
@@ -232,7 +220,8 @@ export const WalletComponent = observer(() => {
             >
               <input
                 type="checkbox"
-                checked={!!activeSubscriptions[item.id]}
+                checked={walletStore.isAddressWatched(item.address)}
+                disabled={walletStore.isWatchlistLoading}
                 onChange={() => handleCheckboxChange(item)}
                 style={{ marginRight: '10px', marginTop: '4px' }}
               />
@@ -296,7 +285,6 @@ export const WalletComponent = observer(() => {
           </thead>
 
           <tbody>
-            {/* ИСПРАВЛЕНО: добавлена открывающая фигурная скобка перед map. */}
             {walletStore.transactions.map((tx) => (
               <tr
                 key={tx.id}
